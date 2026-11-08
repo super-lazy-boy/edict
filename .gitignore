@@ -21,3 +21,12 @@ desktop.ini
 
 # 本地工具（引擎二进制，不入库）
 /tools/
+
+# 生成物与截图（可随时用脚本重出）
+/art/preview/
+/docs/*.png
+
+# 临时下载
+*.7z
+*.zip.part
+/parts/
