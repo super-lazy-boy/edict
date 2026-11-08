@@ -5,16 +5,34 @@ UI_SAVE,Save,存档
 UI_LOAD,Load,读档
 UI_NEW,New Map,新地图
 UI_PAUSE,Pause,暂停
+UI_SPEED,Speed,速度
 HUD_FPS,FPS,帧率
+HUD_SPEED,Speed,速度
 HUD_TICK,Tick,时间刻度
 HUD_CAM,Camera,镜头
 HUD_DRAWN,Tiles drawn,绘制瓦片
 HUD_SEED,Seed,种子
-HUD_SPEED,Speed,速度
-UI_SPEED,Speed,速度
+HUD_POP,Population,人口
+HUD_CITIZENS_DRAWN,Citizens drawn,绘制市民
+HUD_JOBS,Jobs,待办工作
+UI_HUNGER,Hunger,饥饿
+UI_ENERGY,Energy,体力
+UI_MOOD,Mood,心情
+UI_POS,Position,位置
 MSG_SAVED,Saved,已存档
 MSG_LOADED,Loaded,已读档
 MSG_SAVE_FAIL,Save failed,存档失败
 MSG_LOAD_FAIL,Load failed,读档失败
 HELP_PAN,Middle-drag or WASD to pan,中键拖拽或 WASD 平移
 HELP_ZOOM,Wheel to zoom,滚轮缩放
+HELP_SELECT,Click a citizen to inspect,点击市民查看信息
+PROF_FARMER,Farmer,农民
+PROF_ARTISAN,Artisan,工匠
+PROF_MERCHANT,Merchant,商人
+PROF_SOLDIER,Soldier,士兵
+PROF_OFFICIAL,Official,官员
+PROF_NOBLE,Noble,贵族
+ACT_IDLE,Idle,闲着
+ACT_MOVING,Walking,走路
+ACT_WORKING,Working,干活
+ACT_EATING,Eating,进食

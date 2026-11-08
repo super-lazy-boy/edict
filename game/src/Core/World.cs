@@ -43,6 +43,13 @@ public sealed class World
 
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
 
+    /// <summary>改写单个瓦片。市民砍树会把森林变成草地。</summary>
+    public void SetTile(int x, int y, TileType type)
+    {
+        if (!InBounds(x, y)) return;
+        _tiles[y * Width + x] = type;
+    }
+
     public TileType[] Tiles => _tiles;
 
     // ---------- 生成 ----------

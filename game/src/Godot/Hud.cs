@@ -126,10 +126,13 @@ public partial class Hud : CanvasLayer
             $"{Locale.Tr("HUD_FPS")}: {Engine.GetFramesPerSecond():0}\n" +
             $"{Locale.Tr("HUD_TICK")}: {Main.Clock.Tick}\n" +
             $"{Locale.Tr("HUD_SPEED")}: {Main.Clock.Speed:0.#}x\n" +
+            $"{Locale.Tr("HUD_POP")}: {Main.Citizens?.Count ?? 0}\n" +
+            $"{Locale.Tr("HUD_JOBS")}: {Main.Citizens?.Jobs.PendingCount ?? 0}\n" +
             $"{Locale.Tr("HUD_CAM")}: {camText}\n" +
-            $"{Locale.Tr("HUD_DRAWN")}: {Main.Renderer?.LastDrawnTiles ?? 0} / {Main.World.Width * Main.World.Height}\n" +
+            $"{Locale.Tr("HUD_DRAWN")}: {Main.Renderer?.LastDrawnTiles ?? 0}\n" +
             $"{Locale.Tr("HUD_SEED")}: {Main.World.Seed}\n" +
-            $"{Locale.Tr("HELP_PAN")} · {Locale.Tr("HELP_ZOOM")}";
+            $"{Locale.Tr("HELP_PAN")} · {Locale.Tr("HELP_ZOOM")}\n" +
+            $"{Locale.Tr("HELP_SELECT")}";
 
         if (_toastTimer > 0)
         {

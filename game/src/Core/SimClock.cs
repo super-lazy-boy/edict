@@ -21,7 +21,7 @@ public sealed class SimClock
     /// <summary>0..1，本 tick 内的插值进度，渲染平滑用。</summary>
     public double Alpha => _accumulator / TickSeconds;
 
-    public void Advance(double delta)
+    public int Advance(double delta)
     {
         _accumulator += delta * Speed;
         int steps = 0;
@@ -32,6 +32,7 @@ public sealed class SimClock
             steps++;
         }
         if (steps == MaxCatchUpTicks) _accumulator = 0;
+        return steps;
     }
 
     public void Load(long tick)

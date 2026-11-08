@@ -46,12 +46,20 @@ public partial class TileRenderer : Node2D
         int drawn = 0;
         for (int y = y0; y <= y1; y++)
         {
-            for (int x = x0; x <= x1; x++)
+            // 按行合并同色瓦片：大片水域/草地只发一次绘制调用
+            int x = x0;
+            while (x <= x1)
             {
                 var t = World[x, y];
-                var rect = new Rect2(x * TileSize, y * TileSize, TileSize, TileSize);
-                DrawRect(rect, Palette[(int)t], true);
-                drawn++;
+                int runEnd = x;
+                while (runEnd + 1 <= x1 && World[runEnd + 1, y] == t) runEnd++;
+
+                int w = runEnd - x + 1;
+                DrawRect(new Rect2(x * TileSize, y * TileSize, w * TileSize, TileSize),
+                         Palette[(int)t], true);
+
+                drawn += w;
+                x = runEnd + 1;
             }
         }
         LastDrawnTiles = drawn;
