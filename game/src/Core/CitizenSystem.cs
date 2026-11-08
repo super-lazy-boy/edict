@@ -5,40 +5,56 @@ namespace Edict.Core;
 
 /// <summary>
 /// 市民系统。所有市民存在一个连续数组里，按固定步长推进。
+/// 移动走 A* 路径，每 tick 有总节点预算，避免几百人同时寻路卡帧。
 /// 不依赖引擎——可以脱离画面跑 1000 倍速测试。
 /// </summary>
 public sealed class CitizenSystem
 {
     public const float TileSize = 48f;
 
+    /// <summary>每 tick 全系统可用的寻路节点总数。超了就排队等下一 tick。</summary>
+    public const int PathBudgetPerTick = 24000;
+
+    /// <summary>游泳速度倍率。</summary>
+    public const float SwimSpeedFactor = 0.4f;
+
+    /// <summary>在水里每 tick 的溺水概率。0.0003 ≈ 每秒 0.3%，游 20 秒约 6%。</summary>
+    public const double DrownChancePerTick = 0.0003;
+
     private Citizen[] _citizens = Array.Empty<Citizen>();
+    private List<int>[] _paths = Array.Empty<List<int>>();
     private int _count;
 
     private readonly Random _rng;
     private int _nextId = 1;
 
+    private int _pathBudgetLeft;
+
     public World World { get; private set; }
     public JobBoard Jobs { get; } = new();
+    public Pathfinder Pathfinder { get; private set; } = null!;
 
     /// <summary>工作完成时回调（瓦片X, 瓦片Y, 类型）。建筑系统用它来标记完工。</summary>
     public Action<int, int, JobType>? OnJobDone;
 
-    /// <summary>居民点中心（世界像素坐标）。</summary>
     public float HomeX { get; private set; }
     public float HomeY { get; private set; }
 
     public int Count => _count;
     public ReadOnlySpan<Citizen> Citizens => _citizens.AsSpan(0, _count);
 
+    /// <summary>本 tick 实际消耗的寻路节点数，用于性能观测。</summary>
+    public int PathNodesUsed { get; private set; }
+
     public CitizenSystem(World world, int seed)
     {
         World = world;
         _rng = new Random(seed);
+        Pathfinder = new Pathfinder(world);
 
         float cx = world.Width * TileSize * 0.5f;
         float cy = world.Height * TileSize * 0.5f;
 
-        // 居民点必须落在陆地上——地图中心经常是湖
         if (FindNearestWalkable(cx, cy, out float hx, out float hy))
         {
             HomeX = hx;
@@ -65,10 +81,7 @@ public sealed class CitizenSystem
                     if (Math.Abs(dx) != radius && Math.Abs(dy) != radius) continue;
 
                     int tx = ctx + dx, ty = cty + dy;
-                    if (!World.InBounds(tx, ty)) continue;
-
-                    var t = World[tx, ty];
-                    if (t == TileType.Water || t == TileType.Rock || t == TileType.Void) continue;
+                    if (!Pathfinder.Walkable(tx, ty)) continue;
 
                     rx = tx * TileSize + TileSize * 0.5f;
                     ry = ty * TileSize + TileSize * 0.5f;
@@ -86,7 +99,12 @@ public sealed class CitizenSystem
 
     public void Spawn(int n)
     {
-        if (_citizens.Length < n) _citizens = new Citizen[Math.Max(n, 64)];
+        if (_citizens.Length < n)
+        {
+            _citizens = new Citizen[Math.Max(n, 64)];
+            _paths = new List<int>[Math.Max(n, 64)];
+        }
+
         _count = 0;
         _nextId = 1;
         Jobs.Clear();
@@ -128,11 +146,13 @@ public sealed class CitizenSystem
             Speed = 42f + (float)(_rng.NextDouble() * 18),
             Profession = (Profession)_rng.Next(0, 6),
             NameIndex = _rng.Next(0, 240),
+            HasPath = 0,
+            PathIndex = 0,
+            Alive = 1,
         };
         _citizens[_count++] = c;
     }
 
-    /// <summary>把地图上的树变成砍伐工作。</summary>
     private void GenerateJobs()
     {
         int added = 0;
@@ -154,42 +174,54 @@ public sealed class CitizenSystem
 
     // ---------------- 推进 ----------------
 
-    /// <summary>推进一个 tick。dt 固定为 0.1 秒。</summary>
     public void Tick(float dt)
     {
+        _pathBudgetLeft = PathBudgetPerTick;
+        PathNodesUsed = 0;
+
         for (int i = 0; i < _count; i++)
         {
+            if (_citizens[i].Alive == 0) continue;
             ref Citizen c = ref _citizens[i];
             UpdateNeeds(ref c, dt);
-            UpdateBehaviour(ref c, dt);
+            UpdateBehaviour(i, ref c, dt);
         }
     }
 
+    public int AliveCount
+    {
+        get
+        {
+            int n = 0;
+            for (int i = 0; i < _count; i++) if (_citizens[i].Alive != 0) n++;
+            return n;
+        }
+    }
+
+    public int DrownedCount { get; private set; }
+
     private void UpdateNeeds(ref Citizen c, float dt)
     {
-        // 饥饿增长；干活时增长更快
         float hungerRate = c.State == CitizenState.Working ? 0.55f : 0.35f;
         c.Hunger = MathF.Min(100f, c.Hunger + hungerRate * dt);
 
-        // 体力：干活掉，闲着回
         if (c.State == CitizenState.Working)
             c.Energy = MathF.Max(0f, c.Energy - 0.8f * dt);
         else
             c.Energy = MathF.Min(100f, c.Energy + 0.25f * dt);
 
-        // 心情：饿和累都掉心情
         float moodTarget = 70f - c.Hunger * 0.4f - (100f - c.Energy) * 0.2f;
         c.Mood += (moodTarget - c.Mood) * 0.02f;
         c.Mood = Math.Clamp(c.Mood, 0f, 100f);
     }
 
-    private void UpdateBehaviour(ref Citizen c, float dt)
+    private void UpdateBehaviour(int i, ref Citizen c, float dt)
     {
-        // 1. 太饿就先去吃
         if (c.Hunger > 80f && c.State != CitizenState.Eating)
         {
             ReleaseJob(ref c);
             c.State = CitizenState.Eating;
+            c.HasPath = 0;
         }
 
         switch (c.State)
@@ -200,13 +232,12 @@ public sealed class CitizenSystem
                 break;
 
             case CitizenState.Idle:
-                if (!TryTakeJob(ref c))
-                    StartWander(ref c);
+                if (!TryTakeJob(i, ref c))
+                    StartWander(i, ref c);
                 break;
 
             case CitizenState.Moving:
-                TryMove(ref c, dt);
-                if (Near(c, c.TargetX, c.TargetY, 6f))
+                if (FollowPath(i, ref c, dt))
                 {
                     if (c.JobId >= 0)
                     {
@@ -226,16 +257,23 @@ public sealed class CitizenSystem
         }
     }
 
-    private bool TryTakeJob(ref Citizen c)
+    private bool TryTakeJob(int i, ref Citizen c)
     {
         int idx = Jobs.Claim(c.Id, c.X, c.Y);
         if (idx < 0) return false;
 
-        var j = Jobs.Jobs[idx];
+        var j = Jobs.Get(idx);
         c.JobId = idx;
         c.Job = j.Type;
-        c.TargetX = j.X;
-        c.TargetY = j.Y;
+
+        if (!RequestPath(i, ref c, j.X, j.Y))
+        {
+            Jobs.Release(idx);
+            c.JobId = -1;
+            c.Job = JobType.None;
+            return false;
+        }
+
         c.State = CitizenState.Moving;
         return true;
     }
@@ -252,9 +290,8 @@ public sealed class CitizenSystem
         var j = Jobs.Get(c.JobId);
         Jobs.SetRemaining(c.JobId, j.Remaining - dt);
 
-        if (j.Remaining <= 0f)
+        if (j.Remaining - dt <= 0f)
         {
-            // 树被砍倒：地图上的森林变成草地
             if (j.Type == JobType.ChopTree && World[j.TileX, j.TileY] == TileType.Forest)
                 World.SetTile(j.TileX, j.TileY, TileType.Grass);
 
@@ -263,22 +300,23 @@ public sealed class CitizenSystem
             c.JobId = -1;
             c.Job = JobType.None;
             c.State = CitizenState.Idle;
+            c.HasPath = 0;
             c.Energy = MathF.Max(0f, c.Energy - 3f);
         }
     }
 
-    private void StartWander(ref Citizen c)
+    private void StartWander(int i, ref Citizen c)
     {
-        for (int tries = 0; tries < 12; tries++)
+        for (int tries = 0; tries < 10; tries++)
         {
             float ang = (float)(_rng.NextDouble() * Math.PI * 2);
             float rad = (float)(_rng.NextDouble() * 6 * TileSize);
             float tx = c.X + MathF.Cos(ang) * rad;
             float ty = c.Y + MathF.Sin(ang) * rad;
-            if (IsWalkable(tx, ty))
+            if (!IsWalkable(tx, ty)) continue;
+
+            if (RequestPath(i, ref c, tx, ty))
             {
-                c.TargetX = tx;
-                c.TargetY = ty;
                 c.State = CitizenState.Moving;
                 return;
             }
@@ -286,42 +324,94 @@ public sealed class CitizenSystem
         c.State = CitizenState.Idle;
     }
 
-    /// <summary>朝目标移动一步。撞到水面/岩石就放弃当前目标，重新找路。</summary>
-    private void TryMove(ref Citizen c, float dt)
+    // ---------------- 路径 ----------------
+
+    private bool RequestPath(int i, ref Citizen c, float tx, float ty)
     {
-        float dx = c.TargetX - c.X;
-        float dy = c.TargetY - c.Y;
-        float dist = MathF.Sqrt(dx * dx + dy * dy);
-        if (dist < 0.001f) return;
+        c.TargetX = tx;
+        c.TargetY = ty;
+        c.PathIndex = 0;
+        c.HasPath = 0;
 
-        float step = c.Speed * dt;
-        float nx, ny;
-        if (step >= dist)
-        {
-            nx = c.TargetX;
-            ny = c.TargetY;
-        }
-        else
-        {
-            nx = c.X + dx / dist * step;
-            ny = c.Y + dy / dist * step;
-        }
+        if (_pathBudgetLeft <= 0) return false;
 
-        if (!IsWalkable(nx, ny))
-        {
-            c.State = CitizenState.Idle;
-            return;
-        }
+        int sx = (int)(c.X / TileSize);
+        int sy = (int)(c.Y / TileSize);
+        int gx = (int)(tx / TileSize);
+        int gy = (int)(ty / TileSize);
 
-        c.X = nx;
-        c.Y = ny;
+        var list = _paths[i] ??= new List<int>(64);
+
+        int budget = Math.Min(3000, _pathBudgetLeft);
+        bool ok = Pathfinder.Find(sx, sy, gx, gy, list, budget);
+        _pathBudgetLeft -= Pathfinder.LastExpanded;
+        PathNodesUsed += Pathfinder.LastExpanded;
+
+        if (!ok) return false;
+
+        c.HasPath = 1;
+        return true;
     }
 
-    private static bool Near(in Citizen c, float tx, float ty, float eps)
+    /// <summary>沿路径走一步。返回 true 表示已到达终点。</summary>
+    private bool FollowPath(int i, ref Citizen c, float dt)
     {
-        float dx = tx - c.X;
-        float dy = ty - c.Y;
-        return dx * dx + dy * dy <= eps * eps;
+        if (c.HasPath == 0) return true;
+
+        var path = _paths[i];
+        if (path == null || path.Count == 0) return true;
+        if (c.PathIndex >= path.Count) return true;
+
+        int tile = path[c.PathIndex];
+        float wx = (tile % World.Width + 0.5f) * TileSize;
+        float wy = (tile / World.Width + 0.5f) * TileSize;
+
+        float dx = wx - c.X;
+        float dy = wy - c.Y;
+        float dist = MathF.Sqrt(dx * dx + dy * dy);
+
+        // 在水里游得慢
+        float speed = c.Speed;
+        int ctx = (int)(c.X / TileSize);
+        int cty = (int)(c.Y / TileSize);
+        bool inWater = World[ctx, cty] == TileType.Water;
+        bool safeWater = World.IsFerryWater(ctx, cty);
+        if (inWater && !safeWater) speed *= SwimSpeedFactor;
+
+        float step = speed * dt;
+
+        if (step >= dist)
+        {
+            c.X = wx;
+            c.Y = wy;
+            c.PathIndex++;
+            CheckDrown(ref c, wx, wy);
+            return c.PathIndex >= path.Count;
+        }
+
+        c.X += dx / dist * step;
+        c.Y += dy / dist * step;
+        CheckDrown(ref c, c.X, c.Y);
+        return false;
+    }
+
+    /// <summary>踩到没有渡口的水域就有溺水风险。</summary>
+    private void CheckDrown(ref Citizen c, float x, float y)
+    {
+        if (c.Alive == 0) return;
+
+        int tx = (int)(x / TileSize);
+        int ty = (int)(y / TileSize);
+        if (World[tx, ty] != TileType.Water) return;
+        if (World.IsFerryWater(tx, ty)) return;
+
+        if (_rng.NextDouble() < DrownChancePerTick)
+        {
+            c.Alive = 0;
+            c.HasPath = 0;
+            DrownedCount++;
+            ReleaseJob(ref c);
+        }
     }
 
     private void ReleaseJob(ref Citizen c)
@@ -337,11 +427,9 @@ public sealed class CitizenSystem
     {
         int tx = (int)(worldX / TileSize);
         int ty = (int)(worldY / TileSize);
-        var t = World[tx, ty];
-        return t != TileType.Water && t != TileType.Rock && t != TileType.Void;
+        return Pathfinder.Walkable(tx, ty);
     }
 
-    /// <summary>找到离给定世界坐标最近的市民，超出半径返回 -1。</summary>
     public int FindNearest(float worldX, float worldY, float maxDist)
     {
         int best = -1;

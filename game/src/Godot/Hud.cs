@@ -131,7 +131,8 @@ public partial class Hud : CanvasLayer
             $"{Locale.Tr("HUD_CIV")}: {civName}\n" +
             $"{Locale.Tr("HUD_TICK")}: {Main.Clock.Tick}\n" +
             $"{Locale.Tr("HUD_SPEED")}: {Main.Clock.Speed:0.#}x\n" +
-            $"{Locale.Tr("HUD_POP")}: {Main.Citizens?.Count ?? 0}\n" +
+            $"{Locale.Tr("HUD_POP")}: {Main.Citizens?.AliveCount ?? 0} / {Main.Citizens?.Count ?? 0}\n" +
+            $"{Locale.Tr("HUD_DROWNED")}: {Main.Citizens?.DrownedCount ?? 0}\n" +
             $"{Locale.Tr("HUD_WOOD")}: {stock?.Wood ?? 0:0}\n" +
             $"{Locale.Tr("HUD_FOOD")}: {stock?.Food ?? 0:0}\n" +
             $"{Locale.Tr("HUD_CAP")}: {stock?.Total ?? 0:0} / {stock?.Capacity ?? 0}\n" +

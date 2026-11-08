@@ -14,6 +14,9 @@ public sealed class World
 
     private readonly TileType[] _tiles;
 
+    /// <summary>被渡口覆盖的水域：可安全通行、代价低。</summary>
+    private readonly bool[] _ferryWater;
+
     public World(int width, int height, int seed)
     {
         if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
@@ -21,6 +24,7 @@ public sealed class World
         Height = height;
         Seed = seed;
         _tiles = new TileType[width * height];
+        _ferryWater = new bool[width * height];
         Generate();
     }
 
@@ -30,6 +34,7 @@ public sealed class World
         Height = height;
         Seed = seed;
         _tiles = tiles;
+        _ferryWater = new bool[width * height];
     }
 
     public TileType this[int x, int y]
@@ -48,6 +53,44 @@ public sealed class World
     {
         if (!InBounds(x, y)) return;
         _tiles[y * Width + x] = type;
+        if (type != TileType.Water) _ferryWater[y * Width + x] = false;
+    }
+
+    /// <summary>该水域是否被渡口覆盖（可安全通过）。</summary>
+    public bool IsFerryWater(int x, int y)
+        => InBounds(x, y) && _ferryWater[y * Width + x];
+
+    /// <summary>渡口建成时，把周围水域标记为安全航道。</summary>
+    public void MarkFerryWater(int cx, int cy, int radius)
+    {
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                if (dx * dx + dy * dy > radius * radius) continue;
+                int x = cx + dx, y = cy + dy;
+                if (!InBounds(x, y)) continue;
+                if (_tiles[y * Width + x] != TileType.Water) continue;
+                _ferryWater[y * Width + x] = true;
+            }
+        }
+    }
+
+    /// <summary>某个水格附近（半径 r）是否有陆地，用于判断能否建渡口。</summary>
+    public bool HasLandNear(int cx, int cy, int radius)
+    {
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                int x = cx + dx, y = cy + dy;
+                if (!InBounds(x, y)) continue;
+                var t = _tiles[y * Width + x];
+                if (t != TileType.Water && t != TileType.Void && t != TileType.Rock)
+                    return true;
+            }
+        }
+        return false;
     }
 
     public TileType[] Tiles => _tiles;

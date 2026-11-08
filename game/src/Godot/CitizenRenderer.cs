@@ -65,6 +65,8 @@ public partial class CitizenRenderer : Node2D
         for (int i = 0; i < span.Length; i++)
         {
             ref readonly Citizen c = ref span[i];
+            if (c.Alive == 0) continue;
+
             var pos = new Vector2(c.X, c.Y);
             if (!view.HasPoint(pos)) continue;
 

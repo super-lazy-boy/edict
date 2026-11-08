@@ -52,6 +52,12 @@ public partial class BuildingRenderer : Node2D
         float y = b.TileY * ts;
         float w = def.Size * ts;
 
+        if (b.Type == BuildingType.Ferry)
+        {
+            DrawFerry(x, y, w, b.Complete);
+            return;
+        }
+
         if (!b.Complete)
         {
             // 地基 + 脚手架
@@ -96,6 +102,35 @@ public partial class BuildingRenderer : Node2D
 
         // 外框
         DrawRect(new Rect2(x + 2, y + 2, w - 4, w - 4), Outline, false, 1.5f);
+    }
+
+    /// <summary>渡口：木栈桥 + 小舟。</summary>
+    private void DrawFerry(float x, float y, float w, bool complete)
+    {
+        var plank = new Color("5F4831");
+        var plankDark = new Color("3A2A1D");
+        var post = new Color("2A1E15");
+
+        if (!complete)
+        {
+            DrawRect(new Rect2(x + 6, y + 6, w - 12, w - 12), Scaffold, false, 2f);
+            return;
+        }
+
+        // 栈桥
+        DrawRect(new Rect2(x + 4, y + 10, w - 8, w - 20), plank);
+        for (float py = y + 12; py < y + w - 10; py += 6)
+            DrawLine(new Vector2(x + 4, py), new Vector2(x + w - 4, py), plankDark, 1f);
+
+        // 桥桩
+        DrawRect(new Rect2(x + 4, y + 10, 3, w - 20), post);
+        DrawRect(new Rect2(x + w - 7, y + 10, 3, w - 20), post);
+
+        // 小舟
+        DrawRect(new Rect2(x + w * 0.32f, y + w * 0.36f, w * 0.36f, w * 0.26f), plank);
+        DrawLine(new Vector2(x + w * 0.32f, y + w * 0.62f), new Vector2(x + w * 0.68f, y + w * 0.62f), post, 2f);
+
+        DrawRect(new Rect2(x + 4, y + 10, w - 8, w - 20), Outline, false, 1.5f);
     }
 
     private void DrawGhost()

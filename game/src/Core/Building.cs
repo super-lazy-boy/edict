@@ -18,6 +18,7 @@ public enum BuildingType : byte
     Farm = 2,       // 农田
     Warehouse = 3,  // 仓库
     LumberCamp = 4, // 伐木场
+    Ferry = 5,      // 渡口
 }
 
 public struct BuildingDef
@@ -38,6 +39,7 @@ public struct BuildingDef
         new() { Type = BuildingType.Farm,       NameKey = "BLD_FARM_NAME",       Size = 3, BuildWork = 20, WoodCost = 8,  Produces = ResourceKind.Food,  RatePerSecond = 0.6f, StorageBonus = 0 },
         new() { Type = BuildingType.Warehouse,  NameKey = "BLD_WAREHOUSE_NAME",  Size = 3, BuildWork = 24, WoodCost = 12, Produces = ResourceKind.None,  RatePerSecond = 0f,   StorageBonus = 200 },
         new() { Type = BuildingType.LumberCamp, NameKey = "BLD_LUMBERCAMP_NAME", Size = 2, BuildWork = 16, WoodCost = 6,  Produces = ResourceKind.Wood,  RatePerSecond = 0.5f, StorageBonus = 0 },
+        new() { Type = BuildingType.Ferry,      NameKey = "BLD_FERRY_NAME",      Size = 1, BuildWork = 10, WoodCost = 8,  Produces = ResourceKind.None,  RatePerSecond = 0f,   StorageBonus = 0 },
     };
 
     public static BuildingDef Get(BuildingType t) => All[(int)t];
@@ -135,6 +137,20 @@ public sealed class BuildingSystem
     {
         var def = BuildingDef.Get(type);
         int s = def.Size;
+
+        // 渡口只能建在水上，且附近要有岸
+        if (type == BuildingType.Ferry)
+        {
+            if (!World.InBounds(tileX, tileY)) return false;
+            if (World[tileX, tileY] != TileType.Water) return false;
+            if (!World.HasLandNear(tileX, tileY, 2)) return false;
+            for (int i = 0; i < _buildings.Count; i++)
+            {
+                var b = _buildings[i];
+                if (b.TileX == tileX && b.TileY == tileY) return false;
+            }
+            return true;
+        }
 
         for (int dy = 0; dy < s; dy++)
         {
@@ -243,6 +259,11 @@ public sealed class BuildingSystem
             b.Complete = true;
             b.BuildProgress = 1f;
             _buildings[i] = b;
+
+            // 渡口建成：周围水域变成安全航道
+            if (b.Type == BuildingType.Ferry)
+                World.MarkFerryWater(b.TileX, b.TileY, 3);
+
             return;
         }
     }

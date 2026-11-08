@@ -26,6 +26,7 @@ public partial class BuildTool : CanvasLayer
         BuildingType.Farm,
         BuildingType.Warehouse,
         BuildingType.LumberCamp,
+        BuildingType.Ferry,
     };
 
     public override void _Ready()

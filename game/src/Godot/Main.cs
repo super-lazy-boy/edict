@@ -102,7 +102,8 @@ public partial class Main : Node2D
             ok += TryPlaceNear(BuildingType.Farm, hx - 6, hy + 1) ? 1 : 0;
             ok += TryPlaceNear(BuildingType.Warehouse, hx + 1, hy + 4) ? 1 : 0;
             ok += TryPlaceNear(BuildingType.House, hx - 4, hy - 5) ? 1 : 0;
-            GD.Print($"[Edict] 演示建筑已放置 {ok}/4");
+            ok += TryPlaceFerry(hx, hy) ? 1 : 0;
+            GD.Print($"[Edict] 演示建筑已放置 {ok}/5");
         }
 
         _startTicks = Time.GetTicksMsec();
@@ -133,7 +134,7 @@ public partial class Main : Node2D
         double secs = (Time.GetTicksMsec() - _startTicks) / 1000.0;
         double avgFps = _frameCount / secs;
         GD.Print($"[PERF] frames={_frameCount} secs={secs:0.00} avg_fps={avgFps:0.0} engine_fps={Engine.GetFramesPerSecond():0.0}");
-        GD.Print($"[SIM] citizens={Citizens.Count} jobs_pending={Citizens.Jobs.PendingCount} jobs_done={Citizens.Jobs.DoneCount}");
+        GD.Print($"[SIM] citizens={Citizens.Count} alive={Citizens.AliveCount} drowned={Citizens.DrownedCount} jobs_pending={Citizens.Jobs.PendingCount} jobs_done={Citizens.Jobs.DoneCount}");
         GD.Print($"[ECO] buildings={Buildings.Count} wood={Buildings.Stock.Wood:0.0} food={Buildings.Stock.Food:0.0} cap={Buildings.Stock.Capacity}");
 
         try
@@ -176,6 +177,27 @@ public partial class Main : Node2D
         int idx = Buildings.Place(tx, ty, type);
         if (idx >= 0)
             Buildings.OnJobCompleted(tx, ty, JobType.Build);
+    }
+
+    /// <summary>在居民点附近找一块靠岸的水面建渡口。</summary>
+    private bool TryPlaceFerry(int hx, int hy)
+    {
+        for (int r = 1; r <= 24; r++)
+        {
+            for (int dy = -r; dy <= r; dy++)
+            {
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r) continue;
+                    int x = hx + dx, y = hy + dy;
+                    if (!Buildings.CanPlace(x, y, BuildingType.Ferry)) continue;
+                    DebugPlace(BuildingType.Ferry, x, y);
+                    GD.Print($"[Edict] 渡口建于 ({x},{y})");
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /// <summary>在目标点附近找一个能放的位置，直接建成。</summary>

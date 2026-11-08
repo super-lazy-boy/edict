@@ -62,4 +62,11 @@ public struct Citizen
     public Profession Profession;
 
     public int NameIndex;
+
+    /// <summary>1 = 有可用路径。路径本身存在 CitizenSystem 的并行数组里。</summary>
+    public byte HasPath;
+    public int PathIndex;
+
+    /// <summary>0 = 已死亡（溺水等）。死亡个体仍占数组位置，但不再推进、不再渲染。</summary>
+    public byte Alive;
 }

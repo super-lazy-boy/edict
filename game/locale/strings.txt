@@ -44,6 +44,9 @@ BLD_HOUSE_NAME,House,民居
 BLD_FARM_NAME,Farm,农田
 BLD_WAREHOUSE_NAME,Warehouse,仓库
 BLD_LUMBERCAMP_NAME,Lumber Camp,伐木场
+BLD_FERRY_NAME,Ferry,渡口
+HUD_ALIVE,Alive,存活
+HUD_DROWNED,Drowned,溺亡
 BUILD_HINT_IDLE,Pick a building then click the map,选建筑后点地图放置
 BUILD_HINT_ACTIVE,Click map to place · Right-click or ESC to cancel,点地图放置 · 右键或 ESC 取消
 CIV_JIXIA_NAME,Jixia,稷下
