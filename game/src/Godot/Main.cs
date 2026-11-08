@@ -71,6 +71,13 @@ public partial class Main : Node2D
             GD.Print("[Edict] 加速模式 10x");
         }
 
+        // 自动选中一个市民，用于验证信息面板
+        if (OS.GetCmdlineUserArgs().Contains("--select"))
+        {
+            _inspector.SelectFirst();
+            GD.Print("[Edict] 自动选中市民 0");
+        }
+
         _startTicks = Time.GetTicksMsec();
     }
 

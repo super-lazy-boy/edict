@@ -35,7 +35,7 @@ public partial class InspectorPanel : CanvasLayer
     {
         _panel = new PanelContainer
         {
-            Position = new Vector2(12, 300),
+            Position = new Vector2(12, 400),
             Visible = false,
             CustomMinimumSize = new Vector2(320, 0),
         };
@@ -115,6 +115,19 @@ public partial class InspectorPanel : CanvasLayer
             $"{Locale.Tr("UI_POS")}: ({c.X / 48:0}, {c.Y / 48:0})";
     }
 
+    public void SelectFirst()
+    {
+        if (Citizens == null || Citizens.Count == 0) return;
+        Select(0);
+        // 把镜头移到被选中的人身上
+        var cam = GetViewport().GetCamera2D();
+        if (cam != null)
+        {
+            ref Citizen c = ref Citizens.At(0);
+            cam.Position = new Vector2(c.X, c.Y);
+        }
+    }
+
     private void Select(int index)
     {
         Renderer!.SelectedIndex = index;
@@ -182,7 +195,7 @@ public partial class AvatarView : Control
         var rng = new System.Random(Seed);
 
         // 肩
-        DrawCircle(o + new Vector2(s * 0.5f, s * 1.18f), s * 0.42f, new Color("3E2C46"));
+        DrawCircle(o + new Vector2(s * 0.5f, s * 1.02f), s * 0.36f, new Color("3E2C46"));
 
         // 脖子
         DrawRect(new Rect2(o + new Vector2(s * 0.43f, s * 0.55f), new Vector2(s * 0.14f, s * 0.2f)), SkinBase);
