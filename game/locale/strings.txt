@@ -1,0 +1,20 @@
+key,en,zh_CN
+UI_TITLE,Edict,敕令
+UI_LANG_TOGGLE,English / 中文,English / 中文
+UI_SAVE,Save,存档
+UI_LOAD,Load,读档
+UI_NEW,New Map,新地图
+UI_PAUSE,Pause,暂停
+HUD_FPS,FPS,帧率
+HUD_TICK,Tick,时间刻度
+HUD_CAM,Camera,镜头
+HUD_DRAWN,Tiles drawn,绘制瓦片
+HUD_SEED,Seed,种子
+HUD_SPEED,Speed,速度
+UI_SPEED,Speed,速度
+MSG_SAVED,Saved,已存档
+MSG_LOADED,Loaded,已读档
+MSG_SAVE_FAIL,Save failed,存档失败
+MSG_LOAD_FAIL,Load failed,读档失败
+HELP_PAN,Middle-drag or WASD to pan,中键拖拽或 WASD 平移
+HELP_ZOOM,Wheel to zoom,滚轮缩放
