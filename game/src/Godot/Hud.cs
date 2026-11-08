@@ -1,4 +1,5 @@
 using Godot;
+using Edict.Core;
 
 namespace Edict;
 
@@ -122,11 +123,18 @@ public partial class Hud : CanvasLayer
         var cam = GetViewport().GetCamera2D();
         string camText = cam == null ? "-" : $"({cam.Position.X:0}, {cam.Position.Y:0}) x{cam.Zoom.X:0.00}";
 
+        string civName = Locale.Tr(CivDefinition.Get(Main.Civ).NameKey);
+        var stock = Main.Buildings?.Stock;
+
         _stats.Text =
             $"{Locale.Tr("HUD_FPS")}: {Engine.GetFramesPerSecond():0}\n" +
+            $"{Locale.Tr("HUD_CIV")}: {civName}\n" +
             $"{Locale.Tr("HUD_TICK")}: {Main.Clock.Tick}\n" +
             $"{Locale.Tr("HUD_SPEED")}: {Main.Clock.Speed:0.#}x\n" +
             $"{Locale.Tr("HUD_POP")}: {Main.Citizens?.Count ?? 0}\n" +
+            $"{Locale.Tr("HUD_WOOD")}: {stock?.Wood ?? 0:0}\n" +
+            $"{Locale.Tr("HUD_FOOD")}: {stock?.Food ?? 0:0}\n" +
+            $"{Locale.Tr("HUD_CAP")}: {stock?.Total ?? 0:0} / {stock?.Capacity ?? 0}\n" +
             $"{Locale.Tr("HUD_JOBS")}: {Main.Citizens?.Jobs.PendingCount ?? 0}\n" +
             $"{Locale.Tr("HUD_CAM")}: {camText}\n" +
             $"{Locale.Tr("HUD_DRAWN")}: {Main.Renderer?.LastDrawnTiles ?? 0}\n" +

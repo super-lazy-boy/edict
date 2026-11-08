@@ -15,6 +15,10 @@ HUD_SEED,Seed,种子
 HUD_POP,Population,人口
 HUD_CITIZENS_DRAWN,Citizens drawn,绘制市民
 HUD_JOBS,Jobs,待办工作
+HUD_WOOD,Wood,木材
+HUD_FOOD,Food,粮食
+HUD_CAP,Storage,仓储
+HUD_CIV,Civilization,国风
 UI_HUNGER,Hunger,饥饿
 UI_ENERGY,Energy,体力
 UI_MOOD,Mood,心情
@@ -36,3 +40,27 @@ ACT_IDLE,Idle,闲着
 ACT_MOVING,Walking,走路
 ACT_WORKING,Working,干活
 ACT_EATING,Eating,进食
+BLD_HOUSE_NAME,House,民居
+BLD_FARM_NAME,Farm,农田
+BLD_WAREHOUSE_NAME,Warehouse,仓库
+BLD_LUMBERCAMP_NAME,Lumber Camp,伐木场
+BUILD_HINT_IDLE,Pick a building then click the map,选建筑后点地图放置
+BUILD_HINT_ACTIVE,Click map to place · Right-click or ESC to cancel,点地图放置 · 右键或 ESC 取消
+CIV_JIXIA_NAME,Jixia,稷下
+CIV_JIXIA_TRAIT,Bureaucracy,官僚制
+CIV_JIXIA_DESC,Civil officials handle 20% more load and admin capacity +15%, but generals lose loyalty over time.,文官负载 +20%、行政容量 +15%，但武将忠诚会缓慢下滑。
+CIV_WOLFPLAIN_NAME,Wolfplain,狼原
+CIV_WOLFPLAIN_TRAIT,Horsebow,骑射
+CIV_WOLFPLAIN_DESC,Military +25% and faster levies, but farms yield 15% less and nobles are more likely to rebel.,军力 +25%、征召更快，但农业 −15%，贵族更易叛乱。
+CIV_TIDE_NAME,Tide,潮汐
+CIV_TIDE_TRAIT,Trade Routes,商路
+CIV_TIDE_DESC,Trade income +40% and storage loss halved, but population grows 20% slower.,贸易 +40%、仓储损耗减半，但人口增长 −20%。
+CIV_BEDROCK_NAME,Bedrock,磐石
+CIV_BEDROCK_TRAIT,Masonry,营造
+CIV_BEDROCK_DESC,Build 35% faster and walls 50% stronger, but every office costs 25% more salary.,建造 +35%、城墙 +50%，但所有官职俸禄 +25%。
+CIV_INCENSE_NAME,Incense,香火
+CIV_INCENSE_TRAIT,Oracle,神谕
+CIV_INCENSE_DESC,Unrest rises 40% slower, but industry yields 20% less and officials form factions faster.,民怨 +40% 更慢，但工业 −20%，官员更易结党。
+CIV_ASSEMBLY_NAME,Assembly,众议
+CIV_ASSEMBLY_TRAIT,Senate,元老院
+CIV_ASSEMBLY_DESC,Nobles are half as likely to rebel, but policies take 30% longer to apply and admin capacity −20%.,贵族叛乱概率减半，但政策生效更慢、行政容量 −20%。

@@ -20,6 +20,9 @@ public sealed class CitizenSystem
     public World World { get; private set; }
     public JobBoard Jobs { get; } = new();
 
+    /// <summary>工作完成时回调（瓦片X, 瓦片Y, 类型）。建筑系统用它来标记完工。</summary>
+    public Action<int, int, JobType>? OnJobDone;
+
     /// <summary>居民点中心（世界像素坐标）。</summary>
     public float HomeX { get; private set; }
     public float HomeY { get; private set; }
@@ -256,6 +259,7 @@ public sealed class CitizenSystem
                 World.SetTile(j.TileX, j.TileY, TileType.Grass);
 
             Jobs.Complete(c.JobId);
+            OnJobDone?.Invoke(j.TileX, j.TileY, j.Type);
             c.JobId = -1;
             c.Job = JobType.None;
             c.State = CitizenState.Idle;

@@ -74,6 +74,8 @@ public partial class InspectorPanel : CanvasLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (BuildTool.IsActive) return;   // 放置模式下不抢左键
+
         if (@event is not InputEventMouseButton mb) return;
         if (!mb.Pressed) return;
 

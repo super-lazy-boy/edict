@@ -16,11 +16,15 @@ public partial class Main : Node2D
     public World World { get; private set; } = null!;
     public SimClock Clock { get; private set; } = new();
     public CitizenSystem Citizens { get; private set; } = null!;
+    public BuildingSystem Buildings { get; private set; } = null!;
+    public CivId Civ { get; private set; } = CivId.Jixia;
 
     private TileRenderer _renderer = null!;
+    private BuildingRenderer _buildingRenderer = null!;
     private CitizenRenderer _citizenRenderer = null!;
     private CameraController _camera = null!;
     private InspectorPanel _inspector = null!;
+    private BuildTool _buildTool = null!;
     private Hud _hud = null!;
 
     private const string SavePath = "user://saves/slot1.json";
@@ -36,12 +40,21 @@ public partial class Main : Node2D
     {
         Locale.Load();
 
-        // 性能对照：--nopop 不生成市民，用于隔离渲染开销
+        // 命令行可指定国风：--civ=0..5
+        foreach (var a in OS.GetCmdlineUserArgs())
+        {
+            if (a.StartsWith("--civ=") && int.TryParse(a[6..], out int cv) && cv >= 0 && cv < 6)
+                Civ = (CivId)cv;
+        }
+
         _population = OS.GetCmdlineUserArgs().Contains("--nopop") ? 0 : DefaultPopulation;
         NewWorld(DefaultSeed);
 
         _renderer = new TileRenderer { World = World };
         AddChild(_renderer);
+
+        _buildingRenderer = new BuildingRenderer { Buildings = Buildings };
+        AddChild(_buildingRenderer);
 
         _citizenRenderer = new CitizenRenderer { Citizens = Citizens };
         AddChild(_citizenRenderer);
@@ -52,10 +65,13 @@ public partial class Main : Node2D
         _inspector = new InspectorPanel { Citizens = Citizens, Renderer = _citizenRenderer };
         AddChild(_inspector);
 
+        _buildTool = new BuildTool { Buildings = Buildings, Renderer = _buildingRenderer, Citizens = Citizens };
+        AddChild(_buildTool);
+
         _hud = new Hud { Main = this };
         AddChild(_hud);
 
-        GD.Print("[Edict] 启动完成");
+        GD.Print($"[Edict] 启动完成 国风={Civ}");
 
         if (OS.GetCmdlineUserArgs().Contains("--shot"))
         {
@@ -63,7 +79,6 @@ public partial class Main : Node2D
             GD.Print("[Edict] 截图模式");
         }
 
-        // 加速跑，用于验证市民能否完成工作
         if (OS.GetCmdlineUserArgs().Contains("--fast"))
         {
             Clock.Speed = 10.0;
@@ -71,11 +86,23 @@ public partial class Main : Node2D
             GD.Print("[Edict] 加速模式 10x");
         }
 
-        // 自动选中一个市民，用于验证信息面板
         if (OS.GetCmdlineUserArgs().Contains("--select"))
         {
             _inspector.SelectFirst();
             GD.Print("[Edict] 自动选中市民 0");
+        }
+
+        // 演示：自动放几座建筑，用于验证建造与生产
+        if (OS.GetCmdlineUserArgs().Contains("--demo"))
+        {
+            int hx = (int)(Citizens.HomeX / BuildingSystem.TileSize);
+            int hy = (int)(Citizens.HomeY / BuildingSystem.TileSize);
+            int ok = 0;
+            ok += TryPlaceNear(BuildingType.LumberCamp, hx + 3, hy - 3) ? 1 : 0;
+            ok += TryPlaceNear(BuildingType.Farm, hx - 6, hy + 1) ? 1 : 0;
+            ok += TryPlaceNear(BuildingType.Warehouse, hx + 1, hy + 4) ? 1 : 0;
+            ok += TryPlaceNear(BuildingType.House, hx - 4, hy - 5) ? 1 : 0;
+            GD.Print($"[Edict] 演示建筑已放置 {ok}/4");
         }
 
         _startTicks = Time.GetTicksMsec();
@@ -87,7 +114,10 @@ public partial class Main : Node2D
 
         int ticks = Clock.Advance(delta);
         for (int i = 0; i < ticks; i++)
+        {
             Citizens?.Tick((float)SimClock.TickSeconds);
+            Buildings?.Tick((float)SimClock.TickSeconds);
+        }
 
         _hud.Refresh();
 
@@ -104,6 +134,7 @@ public partial class Main : Node2D
         double avgFps = _frameCount / secs;
         GD.Print($"[PERF] frames={_frameCount} secs={secs:0.00} avg_fps={avgFps:0.0} engine_fps={Engine.GetFramesPerSecond():0.0}");
         GD.Print($"[SIM] citizens={Citizens.Count} jobs_pending={Citizens.Jobs.PendingCount} jobs_done={Citizens.Jobs.DoneCount}");
+        GD.Print($"[ECO] buildings={Buildings.Count} wood={Buildings.Stock.Wood:0.0} food={Buildings.Stock.Food:0.0} cap={Buildings.Stock.Capacity}");
 
         try
         {
@@ -125,10 +156,46 @@ public partial class Main : Node2D
         Citizens = new CitizenSystem(World, seed);
         Citizens.Spawn(_population);
 
+        Buildings = new BuildingSystem(World, Citizens.Jobs, Civ);
+        Citizens.OnJobDone = Buildings.OnJobCompleted;
+
+        // 起步物资，够盖一座伐木场 + 一座农田
+        Buildings.Stock.Wood = 40f;
+
         if (_renderer != null) _renderer.World = World;
+        if (_buildingRenderer != null) _buildingRenderer.Buildings = Buildings;
         if (_citizenRenderer != null) _citizenRenderer.Citizens = Citizens;
         if (_inspector != null) _inspector.Citizens = Citizens;
+        if (_buildTool != null) _buildTool.Buildings = Buildings;
         if (_camera != null) _camera.CenterOnWorld();
+    }
+
+    /// <summary>调试用：直接放一座完工的建筑。</summary>
+    public void DebugPlace(BuildingType type, int tx, int ty)
+    {
+        int idx = Buildings.Place(tx, ty, type);
+        if (idx >= 0)
+            Buildings.OnJobCompleted(tx, ty, JobType.Build);
+    }
+
+    /// <summary>在目标点附近找一个能放的位置，直接建成。</summary>
+    private bool TryPlaceNear(BuildingType type, int tx, int ty)
+    {
+        for (int r = 0; r <= 8; r++)
+        {
+            for (int dy = -r; dy <= r; dy++)
+            {
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r) continue;
+                    int x = tx + dx, y = ty + dy;
+                    if (!Buildings.CanPlace(x, y, type)) continue;
+                    DebugPlace(type, x, y);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // ---------- 存档 ----------
@@ -175,13 +242,18 @@ public partial class Main : Node2D
             Clock.Load(data.Tick);
             Locale.SetLanguage(data.Language);
 
-            // TODO(M1)：市民状态暂不入档，读档后重新生成。M2 补持久化。
+            // TODO(M2)：市民与建筑状态暂不入档，读档后重新生成。
             Citizens = new CitizenSystem(World, World.Seed);
             Citizens.Spawn(_population);
+            Buildings = new BuildingSystem(World, Citizens.Jobs, Civ);
+            Citizens.OnJobDone = Buildings.OnJobCompleted;
+            Buildings.Stock.Wood = 40f;
 
             _renderer.World = World;
+            _buildingRenderer.Buildings = Buildings;
             _citizenRenderer.Citizens = Citizens;
             _inspector.Citizens = Citizens;
+            _buildTool.Buildings = Buildings;
             _camera.World = World;
             _camera.CenterOnWorld();
             _hud.RebuildTexts();
