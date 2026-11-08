@@ -9,18 +9,18 @@ namespace Edict;
 /// </summary>
 public partial class TileRenderer : Node2D
 {
-    public const int TileSize = 32;
+    public const int TileSize = 48;
 
     public World World { get; set; } = null!;
 
     private static readonly Color[] Palette =
     {
-        new(0.05f, 0.05f, 0.07f),   // Void
-        new(0.16f, 0.35f, 0.52f),   // Water
-        new(0.72f, 0.66f, 0.48f),   // Sand
-        new(0.38f, 0.55f, 0.30f),   // Grass
-        new(0.20f, 0.36f, 0.20f),   // Forest
-        new(0.44f, 0.44f, 0.46f),   // Rock
+        new("0E0D10"),   // Void   ink0
+        new("22363F"),   // Water  blue1
+        new("7A6A52"),   // Sand   sand0
+        new("555E3D"),   // Grass  green3
+        new("313A26"),   // Forest green1
+        new("4A474E"),   // Rock   gray0
     };
 
     public int LastDrawnTiles { get; private set; }

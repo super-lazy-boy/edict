@@ -29,7 +29,7 @@ public partial class CameraController : Camera2D
         Position = new Vector2(
             World.Width * TileRenderer.TileSize * 0.5f,
             World.Height * TileRenderer.TileSize * 0.5f);
-        Zoom = new Vector2(1f, 1f);
+        Zoom = new Vector2(0.8f, 0.8f);
     }
 
     public override void _Process(double delta)
