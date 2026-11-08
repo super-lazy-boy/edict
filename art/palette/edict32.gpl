@@ -1,0 +1,36 @@
+GIMP Palette
+Name: Edict 32
+Columns: 8
+#
+ 20  18  26	ink0
+ 36  31  43	ink1
+ 53  48  61	ink2
+ 74  67  81	ink3
+107 100 114	gray0
+143 136 150	gray1
+189 182 194	gray2
+237 231 240	paper
+ 42  59  34	green0
+ 59  82  48	green1
+ 79 107  58	green2
+102 133  71	green3
+127 160  85	green4
+157 188 108	green5
+ 30  58  95	blue0
+ 43  83 130	blue1
+ 58 112 168	blue2
+ 90 148 196	blue3
+107  91  69	earth0
+138 120  89	earth1
+181 163 130	sand0
+214 201 168	sand1
+ 74  50  34	wood0
+107  74  48	wood1
+143 102  66	wood2
+176 133  86	wood3
+122  46  36	red0
+168  68  51	red1
+212 105  63	red2
+ 90  62 122	purple
+201 162  39	gold0
+240 208  96	gold1
